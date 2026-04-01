@@ -104,15 +104,18 @@ app.get('/api/bills', async (req, res) => {
         b.total,
         b.date,
         b.client_id,
-        STRING_AGG(bi.service_name, ', ') AS services,
-        JSON_AGG(
-          JSON_BUILD_OBJECT(
-            'service_name', bi.service_name,
-            'staff', bi.staff,
-            'price', bi.price,
-            'discount', bi.discount,
-            'final_price', bi.final_price
-          )
+        COALESCE(STRING_AGG(bi.service_name, ', '), '') AS services,
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'service_name', bi.service_name,
+              'staff', bi.staff,
+              'price', bi.price,
+              'discount', bi.discount,
+              'final_price', bi.final_price
+            )
+          ) FILTER (WHERE bi.id IS NOT NULL),
+          '[]'
         ) AS items
       FROM bills b
       LEFT JOIN bill_items bi ON b.id = bi.bill_id
@@ -123,8 +126,8 @@ app.get('/api/bills', async (req, res) => {
     res.json(result.rows);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("GET /api/bills ERROR:", err); // ✅ IMPORTANT
+    res.status(500).json({ error: err.message || "Unknown error" });
   }
 });
 
