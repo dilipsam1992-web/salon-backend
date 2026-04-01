@@ -1,13 +1,14 @@
 const express = require('express');
-//const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const { Pool } = require('pg');
 
 const app = express();
-const { Pool } = require('pg');
+
 app.use(cors());
 app.use(bodyParser.json());
 
+// ✅ PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -15,46 +16,50 @@ const pool = new Pool({
   }
 });
 
-//const db = new sqlite3.Database('./salon.db');
+// ✅ Create tables (runs on startup)
+async function initDB() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bills (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER,
+        clientName TEXT,
+        total NUMERIC,
+        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-// Create tables
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS bills (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientName TEXT,
-      date TEXT,
-      total REAL,
-      payment TEXT,
-      status TEXT
-    )
-  `);
-  db.run(`
-  CREATE TABLE IF NOT EXISTS bill_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    bill_id INTEGER,
-    item_name TEXT,
-    type TEXT,
-    staff TEXT,
-    price REAL,
-    discount REAL,
-    net REAL
-  )
-`);
-});
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bill_items (
+        id SERIAL PRIMARY KEY,
+        bill_id INTEGER REFERENCES bills(id),
+        service_name TEXT,
+        staff TEXT,
+        price NUMERIC,
+        discount NUMERIC,
+        final_price NUMERIC
+      )
+    `);
 
+    console.log("✅ Tables ready");
+  } catch (err) {
+    console.error("❌ DB Init Error:", err);
+  }
+}
+
+initDB();
+
+// ✅ Health check
 app.get('/', (req, res) => {
   res.send("Backend is running");
 });
 
-app.listen(3002, () => {
-  console.log("Server running on http://localhost:3002");
-});
+
+// 🚀 POST BILL
 app.post('/api/bills', async (req, res) => {
   try {
     const { client_id, clientName, items, total } = req.body;
 
-    // 1. Insert into bills
     const billResult = await pool.query(
       `INSERT INTO bills (client_id, clientName, total)
        VALUES ($1, $2, $3)
@@ -64,7 +69,6 @@ app.post('/api/bills', async (req, res) => {
 
     const billId = billResult.rows[0].id;
 
-    // 2. Insert bill items
     for (const item of items) {
       await pool.query(
         `INSERT INTO bill_items 
@@ -88,6 +92,9 @@ app.post('/api/bills', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// 🚀 GET BILLS
 app.get('/api/bills', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -119,4 +126,12 @@ app.get('/api/bills', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+
+// ✅ PORT FIX (MANDATORY FOR RENDER)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
