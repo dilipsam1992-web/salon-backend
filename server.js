@@ -133,8 +133,9 @@ app.get('/api/bills', async (req, res) => {
   res.status(500).json({
     error: err.message || "No message",
     stack: err.stack || "No stack"
+  }
   });
-}
+
 
 
 // ✅ PORT FIX (MANDATORY FOR RENDER)
