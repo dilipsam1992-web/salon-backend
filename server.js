@@ -100,7 +100,7 @@ app.get('/api/bills', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         b.id,
-        b.clientname,
+        b."clientname",
         b.total,
         b.date,
         b.client_id,
