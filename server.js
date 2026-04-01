@@ -126,10 +126,15 @@ app.get('/api/bills', async (req, res) => {
     res.json(result.rows);
 
   } catch (err) {
-    console.error("GET /api/bills ERROR:", err); // ✅ IMPORTANT
-    res.status(500).json({ error: err.message || "Unknown error" });
-  }
-});
+  console.error("🔥 FULL ERROR OBJECT:", err);
+  console.error("🔥 ERROR MESSAGE:", err.message);
+  console.error("🔥 ERROR STACK:", err.stack);
+
+  res.status(500).json({
+    error: err.message || "No message",
+    stack: err.stack || "No stack"
+  });
+}
 
 
 // ✅ PORT FIX (MANDATORY FOR RENDER)
