@@ -54,7 +54,6 @@ app.get('/', (req, res) => {
   res.send("Backend is running");
 });
 
-
 // 🚀 POST BILL
 app.post('/api/bills', async (req, res) => {
   try {
@@ -93,14 +92,13 @@ app.post('/api/bills', async (req, res) => {
   }
 });
 
-
 // 🚀 GET BILLS
 app.get('/api/bills', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
         b.id,
-        b."clientname",
+        b.clientName,
         b.total,
         b.date,
         b.client_id,
@@ -126,17 +124,13 @@ app.get('/api/bills', async (req, res) => {
     res.json(result.rows);
 
   } catch (err) {
-  console.error("🔥 FULL ERROR OBJECT:", err);
-  console.error("🔥 ERROR MESSAGE:", err.message);
-  console.error("🔥 ERROR STACK:", err.stack);
-
-  res.status(500).json({
-    error: err.message || "No message",
-    stack: err.stack || "No stack"
+    console.error("🔥 ERROR:", err.message);
+    res.status(500).json({
+      error: err.message || "No message",
+      stack: err.stack || "No stack"
+    });
   }
-  });
-
-
+}); // <--- Added missing closing parenthesis here
 
 // ✅ PORT FIX (MANDATORY FOR RENDER)
 const PORT = process.env.PORT || 3000;
